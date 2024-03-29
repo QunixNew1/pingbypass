@@ -9,6 +9,7 @@ import me.earth.pingbypass.api.traits.StreamableImpl;
 
 @Getter
 public class NameableArgumentTypeImpl<T extends Nameable> implements NameableArgumentType<T> {
+    private static final NameableArgumentTypeImpl<?> EMPTY = new NameableArgumentTypeImpl<>(Streamable.empty(), "empty");
     private final Streamable<T> nameables;
     private final String type;
 
@@ -26,6 +27,11 @@ public class NameableArgumentTypeImpl<T extends Nameable> implements NameableArg
     public static <V extends Nameable> ExtendedRequiredArgumentBuilder<CommandSource, V> builder(
             String name, V... args) {
         return new ExtendedRequiredArgumentBuilder<>(of(name, args), name);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <V extends Nameable> NameableArgumentType<V> empty() {
+        return (NameableArgumentType<V>) EMPTY;
     }
 
 }

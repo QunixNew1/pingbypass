@@ -5,11 +5,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.experimental.Delegate;
+import me.earth.pingbypass.api.config.ConfigParseException;
 import me.earth.pingbypass.api.config.JsonDeserializationFunction;
 import me.earth.pingbypass.api.config.JsonParser;
 import me.earth.pingbypass.api.config.JsonSerializationFunction;
 import me.earth.pingbypass.api.input.Bind;
+import me.earth.pingbypass.api.registry.Registry;
 import me.earth.pingbypass.api.setting.impl.types.container.Container;
 import me.earth.pingbypass.api.traits.Nameable;
 import me.earth.pingbypass.api.traits.NameableImpl;
@@ -19,6 +22,8 @@ import java.util.function.Supplier;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class Parsers<T> implements JsonParser<T> {
+    private static final JsonParser<?> DUMMY = new Parsers<>(e -> { throw new RuntimeException("dummy"); }, v -> { throw new RuntimeException("dummy"); });
+
     public static final JsonParser<Container<Nameable>> CONTAINER = new Parsers<>(e -> Container.fromJson(e, Parsers.NAME), Container::toJson);
     public static final JsonParser<Boolean> BOOL  = new Parsers<>(JsonElement::getAsBoolean, JsonPrimitive::new);
     public static final JsonParser<String> STRING = new Parsers<>(JsonElement::getAsString, JsonPrimitive::new);
@@ -52,6 +57,29 @@ public class Parsers<T> implements JsonParser<T> {
             collection.stream().map(parser::serialize).forEach(result::add);
             return result;
         });
+    }
+
+    public static <T extends Nameable> JsonParser<T> registry(Registry<T> registry) {
+        return new JsonParser<>() {
+            @Override
+            @SneakyThrows
+            public T deserialize(JsonElement element) {
+                return registry
+                        .getByName(element.getAsString())
+                        .orElseThrow(() -> new ConfigParseException("Failed to find " + element.getAsString() + " on registry " + registry));
+            }
+
+            @Override
+            @SneakyThrows
+            public JsonElement serialize(T element) {
+                return new JsonPrimitive(element.getName());
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> JsonParser<T> dummy() {
+        return (JsonParser<T>) DUMMY;
     }
 
 }

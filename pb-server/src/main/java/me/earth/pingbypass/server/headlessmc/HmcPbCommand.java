@@ -7,10 +7,10 @@ import me.earth.pingbypass.PingBypassApi;
 import me.earth.pingbypass.api.command.CommandManager;
 import me.earth.pingbypass.api.command.DelegatingCommandSource;
 import me.earth.pingbypass.server.PingBypassServer;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.network.chat.Component;
 
-// TODO: I do not think this works properly!
 // TODO: proper API for adding stuff to HMC!
 public class HmcPbCommand extends AbstractCommand {
     public HmcPbCommand(HeadlessMc ctx) {
@@ -21,11 +21,18 @@ public class HmcPbCommand extends AbstractCommand {
     public void execute(String... args) {
         // this is kinda eh
         PingBypassApi.instances().filter(pb -> pb instanceof PingBypassServer).findFirst().ifPresent(server -> {
+            if (args.length <= 1) {
+                Minecraft.getInstance().gui.getChat().addMessage(Component.literal("Please specify a PingBypass command!").withStyle(ChatFormatting.RED));
+                return;
+            }
+            // takeout the "pingbypass" at the start of the args
+            String[] pbArgs = new String[args.length - 1];
+            System.arraycopy(args, 1, pbArgs, 0, args.length - 1);
             CommandManager cm = server.getCommandManager();
             try {
-                cm.execute(String.join(" ", args), new DelegatingCommandSource(Minecraft.getInstance(), server));
+                cm.execute(String.join(" ", pbArgs), new DelegatingCommandSource(Minecraft.getInstance(), server));
             } catch (CommandSyntaxException e) {
-                Minecraft.getInstance().gui.getChat().addMessage(ComponentUtils.fromMessage(e.getRawMessage()));
+                Minecraft.getInstance().gui.getChat().addMessage(Component.literal(e.getMessage()).withStyle(ChatFormatting.RED));
             }
         });
     }

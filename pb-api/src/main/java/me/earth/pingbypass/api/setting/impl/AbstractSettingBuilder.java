@@ -32,7 +32,6 @@ public abstract class AbstractSettingBuilder<T, S extends Setting<T>, B extends 
     private String description;
     private T defaultValue;
     private String name;
-    private T value;
 
     protected abstract S create();
 
@@ -83,7 +82,6 @@ public abstract class AbstractSettingBuilder<T, S extends Setting<T>, B extends 
 
     public B withValue(T value) {
         this.defaultValue = value;
-        this.value = value;
         return getSelf();
     }
 

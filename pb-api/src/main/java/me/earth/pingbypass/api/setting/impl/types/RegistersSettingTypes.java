@@ -2,6 +2,7 @@ package me.earth.pingbypass.api.setting.impl.types;
 
 import me.earth.pingbypass.api.setting.Setting;
 import me.earth.pingbypass.api.setting.SettingRegistry;
+import me.earth.pingbypass.api.traits.Nameable;
 
 public interface RegistersSettingTypes extends SettingRegistry {
     default BoolBuilder boolBuilder(String name, boolean value) {
@@ -49,7 +50,17 @@ public interface RegistersSettingTypes extends SettingRegistry {
     }
 
     default <T extends Enum<T>> EnumBuilder<T> enumBuilder(String name, T value) {
-        return new EnumBuilder<T>(value).withName(name);
+        return new EnumBuilder<>(value).withName(name);
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T extends Nameable> RadioSetting<T> radio(String name, Class<T> type, String description, T... values) {
+        return radioBuilder(name, type, description, values).registerOnBuild(this).build();
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T extends Nameable> RadioSettingBuilder<T> radioBuilder(String name, Class<T> type, String description, T... values) {
+        return new RadioSettingBuilder<>(type).withName(name).withDescription(description).withValues(values);
     }
 
 }
