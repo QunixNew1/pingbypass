@@ -123,7 +123,7 @@ subprojects {
 
     configurations {
         lwjglAgent
-        lwjglAgent.extendsFrom runtimeOnly
+        runtimeOnly.extendsFrom lwjglAgent
 
         // see pb-api build.gradle, these need to be on the classpath when building our JavaDoc
         javaDocLibs
@@ -261,13 +261,13 @@ subprojects {
     // So instead we just run from the built jar
     afterEvaluate {
         fabricRunClient {
-            configureTaskForLwjglAgent(it)
+            configureTaskForLwjglAgent(project, it)
         }
 
         // TODO: check if we can run plugins with this? Is deencapsulation on the classpath?
         lexforgeRunClient {
             dependsOn(lexforgeJar)
-            configureTaskForLwjglAgent(it)
+            configureTaskForLwjglAgent(project, it)
             classpath = classpath.filter {
                 !it.toString().contains("${project.name}/build/classes/java/".replace('/', File.separator))
                         && !it.toString().contains("${project.name}/build/resources/".replace('/', File.separator))
@@ -278,7 +278,7 @@ subprojects {
 
         neoforgeRunClient {
             dependsOn(neoforgeJar)
-            configureTaskForLwjglAgent(it)
+            configureTaskForLwjglAgent(project, it)
             classpath = classpath.filter {
                 !it.toString().contains("${project.name}/build/classes/java/".replace('/', File.separator))
                         && !it.toString().contains("${project.name}/build/resources/".replace('/', File.separator))
@@ -289,12 +289,12 @@ subprojects {
     }
 }
 
-private void configureTaskForLwjglAgent(JavaExec exec) {
+private void configureTaskForLwjglAgent(Project project, JavaExec exec) {
     exec.standardInput = System.in
     if (rootProject.property('hmc.lwjgl').toBoolean()) {
-        exec.jvmArgs += ["-javaagent:${configurations.lwjglAgent.files.iterator().next()}"]
+        exec.jvmArgs += ["-javaagent:${project.configurations.lwjglAgent.files.iterator().next()}"]
         exec.systemProperties['joml.nounsafe'] = 'true'
-        exec.systemProperties['fabric.systemLibraries'] = "${configurations.lwjglAgent.files.iterator().next()}"
+        exec.systemProperties['fabric.systemLibraries'] = "${project.configurations.lwjglAgent.files.iterator().next()}"
     }
 }
 
@@ -314,7 +314,7 @@ subprojects {
                 group = 'build'
                 archiveClassifier = "${platform}-release"
                 from remapJarTask.outputs
-                configurations = [ project.configurations.jarLibsImpl ]
+                it.configurations += [ project.configurations.jarLibsImpl ]
             }
 
             rootProject.tasks.named('build') { finalizedBy(shadowTask) }
