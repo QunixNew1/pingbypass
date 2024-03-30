@@ -318,13 +318,6 @@ subprojects {
             }
 
             rootProject.tasks.named('build') { finalizedBy(shadowTask) }
-            publishing {
-                publications {
-                    "$project.name"(MavenPublication) {
-                        artifact shadowTask // publish shadowJar
-                    }
-                }
-            }
         }
     } else if ([project(':pb-server'), project(':pb-client')].contains(project)) {
         ext {
@@ -386,14 +379,6 @@ subprojects {
             }
 
             rootProject.tasks.named('build') { finalizedBy(standaloneTask) }
-
-            publishing {
-                publications {
-                    "$project.name"(MavenPublication) {
-                        artifact standaloneTask
-                    }
-                }
-            }
         }
 
         afterEvaluate {
@@ -429,6 +414,39 @@ subprojects {
 }
 
 afterEvaluate {
+    publishing {
+        repositories {
+            // mavenLocal()
+            // maven {
+            //     name = 'SomewhereOnThisMachine'
+            //     url = 'file://...'
+            // }
+
+            if (System.getenv("PB_OTHER_REPO") != null) {
+                maven {
+                    name = 'otherrepo'
+                    url = "${System.getenv("PB_OTHER_REPO")}"
+                }
+            }
+
+            if (System.getenv('DEPLOY_TO_GITHUB_PACKAGES_URL') == null) {
+                maven {
+                    name = 'BuildDirMaven'
+                    url = rootProject.layout.buildDirectory.dir('maven')
+                }
+            } else {
+                maven {
+                    name = 'GithubPagesMaven'
+                    url = System.getenv('DEPLOY_TO_GITHUB_PACKAGES_URL')
+                    credentials {
+                        username = System.getenv('GITHUB_USER')
+                        password = System.getenv('GITHUB_TOKEN')
+                    }
+                }
+            }
+        }
+    }
+
     subprojects {
         publishing {
             publications {
@@ -440,38 +458,12 @@ afterEvaluate {
                     from components.java
                     for (String platform_capitalized : rootProject.ext.platforms_cap) {
                         String platform = platform_capitalized.toLowerCase()
-                        artifact tasks.named("${platform}Jar").get()
-                        artifact tasks.named("remap${platform_capitalized}Jar").get()
-                    }
-                }
-            }
-
-            repositories {
-                // mavenLocal()
-                // maven {
-                //     name = 'SomewhereOnThisMachine'
-                //     url = 'file://...'
-                // }
-
-                if (System.getenv("PB_OTHER_REPO") != null) {
-                    maven {
-                        name = 'otherrepo'
-                        url = "${System.getenv("PB_OTHER_REPO")}"
-                    }
-                }
-
-                if (System.getenv('DEPLOY_TO_GITHUB_PACKAGES_URL') == null) {
-                    maven {
-                        name = 'BuildDirMaven'
-                        url = rootProject.layout.buildDirectory.dir('maven')
-                    }
-                } else {
-                    maven {
-                        name = 'GithubPagesMaven'
-                        url = System.getenv('DEPLOY_TO_GITHUB_PACKAGES_URL')
-                        credentials {
-                            username = System.getenv('GITHUB_USER')
-                            password = System.getenv('GITHUB_TOKEN')
+                        artifact project.tasks.named("${platform}Jar").get()
+                        artifact project.tasks.named("remap${platform_capitalized}Jar").get()
+                        if (project == project(':pb-api')) {
+                            artifact project.tasks.named("${platform}ShadowJar").get() // publish shadowJar
+                        } else if ([project(':pb-server'), project(':pb-client')].contains(project)) {
+                            artifact project.tasks.named("${platform}StandaloneJar").get() // publish standalone jars
                         }
                     }
                 }
